@@ -4,11 +4,9 @@ This is meant to be a discord bot written in rust that I have no clue what to do
 
 #
 ##  plans
-#
 - Nothing yet, sadly
 #
 
 ## TODOs
-#
  - add an actual bot to here.
 #
