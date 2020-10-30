@@ -26,11 +26,12 @@ use std::{
 use commands::{
     ping::*,
     rip::*,
-    quit::*
+    quit::*,
+    fuck::*
 };
 
 #[group]
-#[commands(ping, rip, quit)]
+#[commands(ping, rip, quit, fuck)]
 struct General;
 
 struct Handler;
