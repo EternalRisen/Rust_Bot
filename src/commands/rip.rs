@@ -11,7 +11,7 @@ use std::format;
 
 #[command]
 async fn rip(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    const RWEEP: [&str; 13] = [
+    const RWEEP: [&str; 14] = [
         ";w;",
         ";",
         ";;",
@@ -24,6 +24,7 @@ async fn rip(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         ":{",
         ":c",
         "D:",
+        ":<",
         "🦀"
     ];
 
@@ -42,14 +43,15 @@ async fn rip(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         "my crush"
     ];
 
-    const CAUSE: [&str; 7] = [
+    const CAUSE: [&str; 8] = [
         "in that car accident",
         "in that nuclear bomb that North Korea set off",
         "in that fatal computer explosion",
         "from ... wait, how did they die? oh well...",
         "from COVID",
         "in a fire",
-        "while petting a kitty"
+        "while petting a kitty",
+        "from being thrown out a window"
     ];
 
     const F: [&str; 7] = [
