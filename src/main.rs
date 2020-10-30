@@ -7,18 +7,19 @@ use serenity::{
 
 use serenity::framework::standard::macros::group;
 
-use tracing::{error, info};
+// use tracing::{error, info};
 
 mod commands;
 
 use dotenv::dotenv;
 use std::env;
 use commands::{
-    ping::*
+    ping::*,
+    rip::*
 };
 
 #[group]
-#[commands(ping)]
+#[commands(ping, rip)]
 struct General;
 
 struct Handler;
@@ -27,7 +28,7 @@ struct Handler;
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         ctx.set_activity(Activity::playing("What's my use?")).await;
-        info!("{} is online!", ready.user.name);
+        println!("{} is online!", ready.user.name);
     }
 }
 
@@ -47,6 +48,6 @@ async fn main() {
         .expect("Error creating client");
 
     if let Err(why) = client.start().await {
-        error!("An error occured while running the client: {:?}", why);
+        println!("An error occured while running the client: {:?}", why);
     }
 }
