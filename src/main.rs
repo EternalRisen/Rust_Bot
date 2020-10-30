@@ -51,7 +51,7 @@ impl TypeMapKey for ShardManagerContainer {
 
 #[tokio::main]
 async fn main() {
-    dotenv().expect("Failed to load .env file");
+    dotenv().ok();
 
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_default_env())
