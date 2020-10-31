@@ -1,16 +1,11 @@
-use serenity::{
-    async_trait,
-    client::bridge::gateway::ShardManager,
-    framework::StandardFramework,
-    http::Http,
-    model::gateway::{ Activity, Ready },
-    prelude::*,
-};
-use serenity::framework::standard::macros::group;
+use serenity::{async_trait, client::bridge::gateway::ShardManager, framework::standard::DispatchError, framework::{StandardFramework, standard::{ CommandResult, macros::{ hook, group }}}, http::Http, model::{
+        gateway::{ Activity, Ready },
+        prelude::*
+    }, prelude::*};
 use tracing::{error, info};
 use tracing_subscriber::{
     FmtSubscriber,
-    EnvFilter,
+    EnvFilter
 };
 
 // use tracing::{error, info};
@@ -18,21 +13,30 @@ use tracing_subscriber::{
 mod commands;
 
 use dotenv::dotenv;
-use std::{
-    collections::HashSet,
-    env,
-    sync::Arc,
-};
+use std::{collections::{HashMap, HashSet}, env, sync::Arc};
 use commands::{
     ping::*,
     rip::*,
     quit::*,
-    fuck::*
+    fuck::*,
+    count::*
 };
 
 #[group]
-#[commands(ping, rip, quit, fuck)]
+#[commands(ping, rip, quit, fuck, count)]
 struct General;
+
+struct ShardManagerContainer;
+
+impl TypeMapKey for ShardManagerContainer {
+    type Value = Arc<Mutex<ShardManager>>;
+}
+
+struct CommandCounter;
+
+impl TypeMapKey for CommandCounter {
+    type Value = HashMap<String, u64>;
+}
 
 struct Handler;
 
@@ -44,10 +48,48 @@ impl EventHandler for Handler {
     }
 }
 
-struct ShardManagerContainer;
+#[hook]
+async fn before(ctx: &Context, msg: &Message, command_name: &str) -> bool {
+    info!("Got command '{}' by user '{}'", command_name, msg.author.name);
 
-impl TypeMapKey for ShardManagerContainer {
-    type Value = Arc<Mutex<ShardManager>>;
+    // Increment the number of times this command has been run once. If
+    // the command's name does not exist in the counter, add a default
+    // value of 0.
+    let mut data = ctx.data.write().await;
+    let counter = data.get_mut::<CommandCounter>().expect("Expected CommandCounter in TypeMap.");
+    let entry = counter.entry(command_name.to_string()).or_insert(0);
+    *entry += 1;
+
+    true // if `before` returns false, command processing doesn't happen.
+}
+
+#[hook]
+async fn after(_ctx: &Context, _msg: &Message, command_name: &str, command_result: CommandResult) {
+    match command_result {
+        Ok(()) => info!("Processed command '{}'", command_name),
+        Err(why) => error!("Command '{}' returned error {:?}", command_name, why),
+    }
+}
+
+#[hook]
+async fn unknown_command(_ctx: &Context, _msg: &Message, unknown_command_name: &str) {
+    info!("Could not find command named '{}'", unknown_command_name);
+}
+
+#[hook]
+async fn normal_message(_ctx: &Context, msg: &Message) {
+    info!("Message is not a command '{}'", msg.content);
+}
+
+
+#[hook]
+async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) {
+    if let DispatchError::Ratelimited(duration) = error {
+        let _ = msg
+            .channel_id
+            .say(&ctx.http, &format!("Try this again in {} seconds.", duration.as_secs()))
+            .await;
+    };
 }
 
 #[tokio::main]
@@ -77,7 +119,11 @@ async fn main() {
     let framework = StandardFramework::new()
         .configure(|c| c
                    .owners(owners)
-                   .prefix("!"))
+                   .prefix("-"))
+                   .before(before)
+                   .after(after)
+                   .unrecognised_command(unknown_command)
+                   .on_dispatch_error(dispatch_error)
         .group(&GENERAL_GROUP);
 
     let mut client = Client::builder(token)
@@ -88,6 +134,7 @@ async fn main() {
 
     {
         let mut data = client.data.write().await;
+        data.insert::<CommandCounter>(HashMap::default());
         data.insert::<ShardManagerContainer>(client.shard_manager.clone());
     }
 

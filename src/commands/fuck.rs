@@ -1,5 +1,6 @@
 use reqwest::Client;
 use serde::Deserialize;
+use serde::Serialize;
 use serenity::prelude::*;
 use serenity::model::prelude::*;
 use serenity::framework::standard::{
@@ -33,15 +34,19 @@ async fn fuck(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     // Send body to discord
     if args.rest() == "operations" {
-        let body: OperationsContent = response.json().await?;
+        let body: FuckOffList = response.json().await?;
+
         // Send operations to discord
         msg.channel_id.send_message(&ctx.http, |m| {
             m.embed(|e| {
                 e.title("Operations");
                 e.description("Have your fucking operations");
-                for operation in body.operations {
-                    e.field(operation.name, operation.url, false);
+                for operation in body {
+                    e.field(operation.name, operation.url, true);
                 }
+                e.footer(|f| {
+                    f.text(format!("Brought to you by {}", url))
+                });
                 e
             });
             m
@@ -54,6 +59,9 @@ async fn fuck(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             m.embed(|e| {
                 e.title(body.message);
                 e.description(body.subtitle);
+                e.footer(|f| {
+                    f.text(format!("Brought to you by {}", url))
+                });
                 e
             });
             m
@@ -68,21 +76,18 @@ struct ResponseContent {
     subtitle: String,
 }
 
-#[derive(Deserialize)]
-struct OperationsContent {
-    operations: Vec<Operation>,
-}
+pub type FuckOffList = Vec<FuckOffListElement>;
 
-#[derive(Deserialize)]
-struct Operation {
+#[derive(Serialize, Deserialize)]
+pub struct FuckOffListElement {
     name: String,
     url: String,
-    fields: Vec<OperationField>,
+    fields: Vec<Field>,
 }
 
-
-#[derive(Deserialize)]
-struct OperationField {
-    name: String,
+#[derive(Serialize, Deserialize)]
+pub struct Field {
+    name: Option<String>,
     field: String,
+    from: Option<String>,
 }
